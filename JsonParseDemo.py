@@ -2,7 +2,7 @@ import json
 
 json_file_path = "json/data.json"
 
-# 2. 读取 JSON 文件并转换为字典数组
+# 读取 JSON 文件并转换为字典数组
 try:
     with open(json_file_path, "r", encoding="utf-8") as f:
         dict_array = json.load(f)

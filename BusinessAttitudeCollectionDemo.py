@@ -1,20 +1,21 @@
 # coding=utf-8
+
 import logging
-from CustomDataFromDeepSeek import get_custom_data_from_deepSeek
 import JsonParseDemo
 import re
 import threading
 import traceback
-from threading import Thread
 import time
-from typing import List
-
-import numpy
 import requests
+from CustomDataFromDeepSeek import get_custom_data_from_deepSeek
+from threading import Thread
+from typing import List
 from selenium import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+
+
 
 """
 这是为惠芷清写的一个有关wjx问卷的自动数据收集+分析+填写的脚本
@@ -22,6 +23,7 @@ python我不熟悉，代码风格可能会有一股浓浓的java味
 此次问卷星的源地址：https://www.wjx.cn/vm/tGWa7U4.aspx
 """
 
+# 日志设置
 logging.basicConfig(
     level=logging.INFO,  # 日志级别设为 INFO
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -33,7 +35,7 @@ def custom_ip():
     ip = requests.get(api).text
     return ip
 
-# url = "https://www.wjx.cn/vm/wVtu6Jl.aspx# "
+# test_url = "https://www.wjx.cn/vm/wVtu6Jl.aspx# "
 url = "https://www.wjx.cn/vm/tGWa7U4.aspx"
 
 # 校验IP地址合法性
@@ -42,41 +44,47 @@ def validate_ip(ip):
     if re.match(pattern, ip):
         return True
     return False
-# 检测题量
+
+# 检测题量(每一页的题目数量，应对存在分页的情况)
 def detect_every_page(driver: WebDriver) -> List[int]:
     q_list: List[int] = []
     page_num = len(driver.find_elements(By.XPATH, '//*[@id="divQuestion"]/fieldset'))
-    for i in range(1, page_num + 1):
-        questions = driver.find_elements(By.XPATH, f'//*[@id="fieldset{i}"]/div')
+    for page in range(1, page_num + 1):
+        questions = driver.find_elements(By.XPATH, f'//*[@id="fieldset{page}"]/div')
         valid_count = sum(
             1 for question in questions if question.get_attribute("topic").isdigit()
         )
         q_list.append(valid_count)
     return q_list
 
+# 处理单选题
 def do_single(driver: WebDriver, current, num):
-    xpath = f'//*[@id="div{current}"]/div[2]/div'
     driver.find_element(
         By.CSS_SELECTOR, f"#div{current} > div.ui-controlgroup > div:nth-child({num})"
     ).click()
 
+# 处理态度打分题
 def do_scale(driver: WebDriver, current, num):
-    xpath = f'//*[@id="div{current}"]/div[2]/div/ul/li'
     driver.find_element(
         By.CSS_SELECTOR, f"#div{current} > div.scale-div > div > ul > li:nth-child({num})"
     ).click()
+
+# 获取此次任务的打分数据
 def get_data():
-    testContent = "# 创业的真正魅力：超越财富的深层价值 \n 当被问及 “创业的真正魅力是什么”，多数人的第一反应往往是 “钱”—— 但财富只是创业价值中最浅显的一层。真正能驱动人穿越艰难、坚守长期的魅力，藏在更深刻的自我重塑与认知突破里，具体可归结为四个核心维度：\n\n\n## 一、在 “极端真实” 中看清自己 \n 创业会将人推向一个毫无遮蔽的现实环境，让你与世界 “赤膊相见”：你做出的每一个决策、犯下的每一个错误、抓住的每一个机会，都不会被模糊的反馈掩盖，反而会在极短时间内呈现明确结果。在这里，没有 “拖延的余地”，也没有 “逃避的空间”—— 你思考的质量、反应的速度、执行的力度，会直接转化为你的处境：可能是项目的快速增长，也可能是问题的集中爆发。\n\n 正是这种 “结果即时反馈” 的机制，让你第一次真切地认知自己：你真正想要的是什么（是短期收益还是长期价值）？能为目标放弃什么（是休闲时间还是固有舒适区）？自己的底线又在哪里（是坚守原则还是妥协利益）。这种对自我的清晰认知，是任何安稳环境都无法给予的 “镜子”。\n\n\n## 二、重构认知边界，打破 “可能性限制”\n 创业最隐秘的魅力之一，是它会不断推翻你对 “不可能” 的预设 —— 你会逐渐发现，很多你以为 “做不到” 的事，其实只是 “没人尝试过”；很多看似无法突破的 “天花板”，只是因为你站立的视角太低。\n\n 当你一次次推动项目突破自己预设的限制（比如从 0 到 1 做出第一个产品、从 10 到 100 拓展第一批客户），你对 “可能性” 的理解会彻底重构：原来世界不是非黑即白的 “能” 与 “不能”，而是存在无数待挖掘的中间地带。这种认知上的 “扩容”，会让你看待问题、看待世界的方式发生根本改变，从此不再被固有思维束缚。\n\n\n## 三、掌握定义规则的 “创造感”\n 创业更核心的魅力，在于它让你摆脱 “遵循他人规则” 的被动 —— 不是所有事情都要按行业既定的玩法走，你完全可以基于自己的判断，找到属于自己的路径。\n\n 这个过程中，你需要亲手构建一个完整的系统：从打磨产品解决用户需求，到搭建团队凝聚协作力量，再到打通渠道实现价值流转。你会看着这个系统从 “无” 到 “有”、从 “不稳定” 到 “稳步运转”，每一个环节的优化都源于你的决策，每一次成长都出自你的设计。这种 “从 0 到 1 创造并掌控系统” 的体验，会带来极强的成就感与掌控感，让你意识到自己不仅是规则的遵守者，更是规则的制定者。\n\n\n## 四、拥有掌控人生的 “主动权”\n 创业赋予的主动权，不是空洞的 “自由”，而是实实在在的 “分配权”—— 对资源的分配权（知道如何调动资金、人脉解决问题）、对时间的分配权（能自主规划优先级，而非被动应付任务）、对决策的分配权（可以按自己的长期目标做选择，而非受制于他人指令）。\n\n 随着能力的积累，你会逐渐进入一种 “从容应对变化” 的状态：当新的机会出现时，你有足够的资源和判断力立刻接住；当突发风险来临时，你有提前铺垫的退路可走。这种主动权，让你的人生不再只有 “按部就班” 一条轨迹，而是拥有多个 “备选方案”，从此不再被动接受命运的安排，而是主动塑造自己的人生走向。\n\n\n 所以，在我看来，创业的真正魅力从不是赚到多少财富，而是它能给你带来伴随一生的深层改变：在极端真实的反馈中看清自己，在一次次突破中拓宽认知，在创造系统中掌握规则，在积累中拥有人生的主动权。这些看不见的成长，比任何一笔具体的收入都更珍贵，也更能定义一个人的人生高度。"
     global data_index
+    # data_index递增
     content = JsonParseDemo.dict_array[data_index]["desc"]
+    # 过滤掉内容比较水的文章，可以去调整这个阈值
     while data_index < len(JsonParseDemo.dict_array) and len(content) < 100:
         content = JsonParseDemo.dict_array[data_index + 1]["desc"]
         data_index += 1
     if data_index == len(JsonParseDemo.dict_array):
+        logging.critical("数据源数量不足!!!")
         quit()
     logging.info(f"原始desc - {content}")
     return get_custom_data_from_deepSeek(content)
 
+# 每一次工作实际的处理函数
 def brush_driver(driver: WebDriver):
     logging.info("开始获取数据源")
     # 每一次的数据源
@@ -87,11 +95,11 @@ def brush_driver(driver: WebDriver):
     for j in questions:
         for k in range(1, j + 1):
             current += 1
-            type = driver.find_element(By.CSS_SELECTOR, f'#div{current}').get_attribute("type")
+            question_type = driver.find_element(By.CSS_SELECTOR, f'#div{current}').get_attribute("type")
             # 单选题
-            if type == "3":
+            if question_type == "3":
                 do_single(driver, current, nums[current - 1])
-            elif type == "5":
+            elif question_type == "5":
                 do_scale(driver, current, nums[current - 1])
             else:
                 logging.error("this type of question isn't supported")
@@ -199,11 +207,12 @@ if __name__ == "__main__":
 
     if validate_ip(custom_ip()):
         print("IP设置成功，使用代理IP")
+        # 这里还是把它禁止了，这次背景没有必要，用了太卡了，而且容易失败
         # use_custom_ip = True
     else:
         print("IP设置失败，将使用本机IP")
 
-    #窗口数量
+    #窗口数量 选择单线程执行，因为每次ip一样，以防他对快速提交的ip会做什么事情
     thread_num = 1
     threads: list[Thread] = []
 

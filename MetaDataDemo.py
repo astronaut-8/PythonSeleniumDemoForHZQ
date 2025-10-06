@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 '''
-问卷的内容会作为我的prompt中的一部份，用爬虫把问题全都爬出来
+问卷的内容会作为我的prompt中的一部份，用爬虫把问题全都爬出来，不是项目工作流的一部分，但还是做一个记录
 '''
 url = "https://www.wjx.cn/vm/tGWa7U4.aspx"
 
@@ -33,10 +33,7 @@ try:
             content = div.get_text().strip()
             print(f"{idx}，{content}")
     else:
-        print("未找到 class='topichtml' 的 div！")
-        # 打印前 500 个字符的 HTML，排查是否是验证页面
-        print("页面 HTML 片段（前 500 字符）：")
-        print(response.text[:500])
+        print("ERROR!!! Please Check!!!")
 
 except requests.exceptions.RequestException as e:
     print(f"请求出错：{e}")
