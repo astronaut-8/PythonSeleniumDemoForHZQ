@@ -14,6 +14,7 @@ from selenium import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from RecordedIndexParseDemo import append_index_set,index_set
 
 
 
@@ -71,18 +72,25 @@ def do_scale(driver: WebDriver, current, num):
 
 # 获取此次任务的打分数据
 def get_data():
-    global data_index
+    global data_index, repeat_count
     # data_index递增
-    content = JsonParseDemo.dict_array[data_index]["desc"]
+    content = JsonParseDemo.dict_array[data_index]
     # 过滤掉内容比较水的文章，可以去调整这个阈值
-    while data_index < len(JsonParseDemo.dict_array) and len(content) < 100:
-        content = JsonParseDemo.dict_array[data_index + 1]["desc"]
+    while data_index < len(JsonParseDemo.dict_array) and len(content) < 100 and (content["note_id"] in index_set):
+        if content["note_id"] in index_set:
+            repeat_count += 1
+            if repeat_count >= len(JsonParseDemo.dict_array) * 0.6:
+                logging.critical("抱歉请手动数据源，因为没有使用存储中间键，我认为直接做本地数据存储不优雅，index就忍了")
+        content = JsonParseDemo.dict_array[data_index + 1]
         data_index += 1
     if data_index == len(JsonParseDemo.dict_array):
         logging.critical("数据源数量不足!!!")
         quit()
+    # 能走到这一步的都是新id
+    cur_index_set.add(content["note_id"])
+    data_index += 1
     logging.info(f"原始desc - {content}")
-    return get_custom_data_from_deepSeek(content)
+    return get_custom_data_from_deepSeek(content["desc"])
 
 # 每一次工作实际的处理函数
 def brush_driver(driver: WebDriver):
@@ -143,7 +151,7 @@ def runs(xx, yy):
     option = webdriver.ChromeOptions()
     option.add_experimental_option("excludeSwitches", ["enable-automation"])
     option.add_experimental_option("useAutomationExtension", False)
-    global cur_success, cur_fail
+    global cur_success, cur_fail, cur_index_set
     while cur_success < target_num:
         if use_custom_ip:
             ip = custom_ip()
@@ -189,9 +197,13 @@ def runs(xx, yy):
 
 if __name__ == "__main__":
     # 目标数量
-    target_num = 1
+    target_num = 2
     # 笔记index
     data_index = 0
+    # 本次工作新使用的index
+    cur_index_set = set()
+    # index 重复数量
+    repeat_count = 0
     #失败阈值
     fail_threshold = target_num / 4 + 1
     #成功次数
@@ -226,5 +238,7 @@ if __name__ == "__main__":
     # thread join
     for thread in threads:
         thread.join()
+    logging.info(f"更新此次的index_set - {cur_index_set}")
+    append_index_set(cur_index_set)
 
 
