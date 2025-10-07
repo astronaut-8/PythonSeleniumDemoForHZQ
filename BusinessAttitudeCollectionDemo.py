@@ -197,7 +197,7 @@ def runs(xx, yy):
 
 if __name__ == "__main__":
     # 目标数量
-    target_num = 2
+    target_num = 20
     # 笔记index
     data_index = 0
     # 本次工作新使用的index
@@ -240,5 +240,6 @@ if __name__ == "__main__":
         thread.join()
     logging.info(f"更新此次的index_set - {cur_index_set}")
     append_index_set(cur_index_set)
+    logging.info(f"此次重复的id个数 - {repeat_count}")
 
 
