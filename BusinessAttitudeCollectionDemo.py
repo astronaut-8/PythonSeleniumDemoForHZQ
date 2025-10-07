@@ -3,6 +3,7 @@
 import logging
 import JsonParseDemo
 import re
+import yaml
 import threading
 import traceback
 import time
@@ -31,13 +32,18 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
+# 配置文件
+with open('config.yaml', 'r', encoding='utf-8') as f:
+    config = yaml.safe_load(f)
+    app_config = config['app']
+
 def custom_ip():
     api = "https://service.ipzan.com/core-extract?num=1&no=20251006181613485146&minute=1&pool=quality&secret=chmgpg1f9naiuco"
     ip = requests.get(api).text
     return ip
 
 # test_url = "https://www.wjx.cn/vm/wVtu6Jl.aspx# "
-url = "https://www.wjx.cn/vm/tGWa7U4.aspx"
+url = app_config['url']
 
 # 校验IP地址合法性
 def validate_ip(ip):
@@ -79,7 +85,7 @@ def get_data():
     while data_index < len(JsonParseDemo.dict_array) and len(content) < 100 and (content["note_id"] in index_set):
         if content["note_id"] in index_set:
             repeat_count += 1
-            if repeat_count >= len(JsonParseDemo.dict_array) * 0.6:
+            if repeat_count >= len(JsonParseDemo.dict_array) * app_config["repeat_threshold_percent"]:
                 logging.critical("抱歉请手动数据源，因为没有使用存储中间键，我认为直接做本地数据存储不优雅，index就忍了")
         content = JsonParseDemo.dict_array[data_index + 1]
         data_index += 1
@@ -197,7 +203,7 @@ def runs(xx, yy):
 
 if __name__ == "__main__":
     # 目标数量
-    target_num = 20
+    target_num = app_config["target_num"]
     # 笔记index
     data_index = 0
     # 本次工作新使用的index
@@ -205,7 +211,7 @@ if __name__ == "__main__":
     # index 重复数量
     repeat_count = 0
     #失败阈值
-    fail_threshold = target_num / 4 + 1
+    fail_threshold = int(target_num * app_config["fail_threshold_percent"] + 1)
     #成功次数
     cur_success = 0
     #失败次数
@@ -217,15 +223,15 @@ if __name__ == "__main__":
     #是否结束
     stop = False
 
-    if validate_ip(custom_ip()):
+    if app_config["try_use_custom_ip"] and validate_ip(custom_ip()):
         print("IP设置成功，使用代理IP")
         # 这里还是把它禁止了，这次背景没有必要，用了太卡了，而且容易失败
-        # use_custom_ip = True
+        use_custom_ip = True
     else:
         print("IP设置失败，将使用本机IP")
 
     #窗口数量 选择单线程执行，因为每次ip一样，以防他对快速提交的ip会做什么事情
-    thread_num = 1
+    thread_num = app_config["thread_num"]
     threads: list[Thread] = []
 
     for i in range(thread_num):
