@@ -15,3 +15,8 @@ Based on a questionnaire, a workflow was built to automatically fill in the ques
 BTW 👽 
 上次真正意义写python应该还是在高中，已经过去三年了，it reminds me of the happy times in the past!
 hhhhhhhhhhhhhhhhhhh
+
+## 2026.5.31
+今天是五月的最后一天，还有一个月，2026就要过去一半了。
+
+每年都会有五月，每年的五月都有晴天和雨天，但是今年的五月和往年的模糊，没有记忆的五月完全不一样。
